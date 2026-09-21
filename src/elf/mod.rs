@@ -69,10 +69,14 @@ pub struct Elf64ProgramHeader {
 
 pub fn write_elf(output_name: String, source_risc_bytes: Vec<u8>, source_risc_data: Vec<u8>) {
     let code_offset = 0x1000u64;
+    let code_vaddr = 0x10000u64;
+
+    let data_offset = 0x2000u64;
+    let data_vaddr = 0x11000u64;
+
     let entry = 0x10000u64;
     let code_size = source_risc_bytes.len() as u64;
     let data_size = source_risc_data.len() as u64;
-    let segment_size = code_size + data_size;
 
     let header = Elf64Header {
         e_ident: [
@@ -99,20 +103,31 @@ pub fn write_elf(output_name: String, source_risc_bytes: Vec<u8>, source_risc_da
         e_flags: 0,
         e_ehsize: 64,
         e_phentsize: 56,
-        e_phnum: 1,
+        e_phnum: 2,
         e_shentsize: 0,
         e_shnum: 0,
         e_shstrndx: 0,
     };
 
-    let program_header = Elf64ProgramHeader {
+    let code_segment = Elf64ProgramHeader {
         p_type: 1,
         p_flags: 5,
         p_offset: code_offset,
-        p_vaddr: entry,
-        p_paddr: entry,
-        p_filesz: segment_size,
-        p_memsz: segment_size,
+        p_vaddr: code_vaddr,
+        p_paddr: code_vaddr,
+        p_filesz: code_size,
+        p_memsz: code_size,
+        p_align: 0x1000,
+    };
+
+    let data_segment = Elf64ProgramHeader {
+        p_type: 1,
+        p_flags: 4,
+        p_offset: data_offset,
+        p_vaddr: data_vaddr,
+        p_paddr: data_vaddr,
+        p_filesz: data_size,
+        p_memsz: data_size,
         p_align: 0x1000,
     };
 
@@ -133,17 +148,21 @@ pub fn write_elf(output_name: String, source_risc_bytes: Vec<u8>, source_risc_da
     bytes.extend_from_slice(&header.e_shnum.to_le_bytes());
     bytes.extend_from_slice(&header.e_shstrndx.to_le_bytes());
 
-    bytes.extend_from_slice(&program_header.p_type.to_le_bytes());
-    bytes.extend_from_slice(&program_header.p_flags.to_le_bytes());
-    bytes.extend_from_slice(&program_header.p_offset.to_le_bytes());
-    bytes.extend_from_slice(&program_header.p_vaddr.to_le_bytes());
-    bytes.extend_from_slice(&program_header.p_paddr.to_le_bytes());
-    bytes.extend_from_slice(&program_header.p_filesz.to_le_bytes());
-    bytes.extend_from_slice(&program_header.p_memsz.to_le_bytes());
-    bytes.extend_from_slice(&program_header.p_align.to_le_bytes());
+    for segment in [code_segment, data_segment] {
+        bytes.extend_from_slice(&segment.p_type.to_le_bytes());
+        bytes.extend_from_slice(&segment.p_flags.to_le_bytes());
+        bytes.extend_from_slice(&segment.p_offset.to_le_bytes());
+        bytes.extend_from_slice(&segment.p_vaddr.to_le_bytes());
+        bytes.extend_from_slice(&segment.p_paddr.to_le_bytes());
+        bytes.extend_from_slice(&segment.p_filesz.to_le_bytes());
+        bytes.extend_from_slice(&segment.p_memsz.to_le_bytes());
+        bytes.extend_from_slice(&segment.p_align.to_le_bytes());
+    }
 
     bytes.resize(code_offset as usize, 0);
     bytes.extend_from_slice(&source_risc_bytes);
+
+    bytes.resize(data_offset as usize, 0);
     bytes.extend_from_slice(&source_risc_data);
 
     fs::write(output_name, bytes).unwrap();

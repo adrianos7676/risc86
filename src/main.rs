@@ -1,4 +1,6 @@
-use std::{env, path::PathBuf};
+use std::{env, fs::File, io::Write, path::PathBuf, process::Command};
+
+use crate::encode::encode_xor;
 
 mod encode;
 mod elf;
@@ -140,7 +142,7 @@ enum SysCall {
 fn main() {
     let mut riscv_code: Vec<u32> = Vec::new();
     let mut registers = [0u64; 16];
-    let mut lea_fixup: Option<(usize, u8)> = None;
+    let mut lea_fixups: Vec<(usize, u8, u64)> = Vec::new();
 
     let args: Vec<String> = env::args().collect();
     dbg!(&args);
@@ -204,6 +206,9 @@ fn main() {
 
                     let mut code_offset = 0;
                     while code_offset < code.len() {
+                        dbg!(code_offset);
+                        dbg!(code[code_offset]);
+
                         match code[code_offset] {
                             0x0F => {
                                 match code[code_offset + 1] {
@@ -248,6 +253,39 @@ fn main() {
                                     _ => todo!()
                                 }
                             },
+                            0xB8..=0xBF => {
+                                let x86_register = match code[code_offset] & 0b111 {
+                                    0 => X86Reg::Rax,
+                                    1 => X86Reg::Rcx,
+                                    2 => X86Reg::Rdx,
+                                    3 => X86Reg::Rbx,
+                                    4 => X86Reg::Rsp,
+                                    5 => X86Reg::Rbp,
+                                    6 => X86Reg::Rsi,
+                                    7 => X86Reg::Rdi,
+                                    _ => unreachable!(),
+                                };
+
+                                let value = u32::from_le_bytes(
+                                    code[code_offset + 1..code_offset + 5]
+                                        .try_into()
+                                        .unwrap()
+                                ) as u64;
+
+                                let riscv_register = x86_register.to_riscv();
+
+                                registers[x86_register.to_index()] = value;
+
+                                riscv_code.push(
+                                    encode::encode_addi(
+                                        riscv_register,
+                                        0,
+                                        value as i32,
+                                    )
+                                );
+
+                                code_offset += 5;
+                            },
                             0x48 => {
                                 match code[code_offset + 1] {
                                     //MOV
@@ -270,6 +308,13 @@ fn main() {
                                     0x8D => {
                                         let modrm = code[code_offset + 2];
                                         let x86_register = X86Reg::from_modrm_reg(modrm);
+
+                                        let mode = modrm >> 6;
+                                        let rm = modrm & 0b111;
+
+                                        if mode != 0b00 || rm != 0b101 {
+                                            todo!();
+                                        }
 
                                         let disp = i32::from_le_bytes(
                                             code[code_offset + 3..code_offset + 7]
@@ -307,25 +352,41 @@ fn main() {
                                         dbg!(data);
 
                                         riscv_data.extend_from_slice(data);
+                                        
+                                        let fixup_index = riscv_code.len();
 
-                                        lea_fixup = Some((riscv_code.len(), x86_register.to_riscv()));
+                                        lea_fixups.push((
+                                            fixup_index,
+                                            x86_register.to_riscv(),
+                                            address,
+                                        ));
 
                                         riscv_code.push(0);
                                         riscv_code.push(0);
 
                                         code_offset += 7;
                                     }
-                                    //XOR
+                                    // XOR
                                     0x31 => {
-                                        let modrm = code[code_offset + 1];
+                                        let modrm = code[code_offset + 2];
                                         let mode = modrm >> 6;
+
                                         match mode {
                                             0b11 => {
                                                 let destination = X86Reg::from_modrm(modrm);
                                                 let source = X86Reg::from_modrm_reg(modrm);
 
-                                                todo!()
+                                                riscv_code.push(encode_xor(
+                                                    destination.to_riscv(),
+                                                    destination.to_riscv(),
+                                                    source.to_riscv(),
+                                                ));
+
+                                                registers[destination.to_index()] = 0;
+
+                                                code_offset += 3;
                                             }
+
                                             _ => todo!()
                                         }
                                     }
@@ -343,9 +404,8 @@ fn main() {
 
             let mut riscv_bytes = Vec::new();
 
-            if let Some((index, riscv_register)) = lea_fixup {
-                let data_address =
-                    0x10000 + (riscv_code.len() * 4) as u64;
+            for (index, riscv_register, _address) in lea_fixups {
+                let data_address = 0x11000u64;
 
                 riscv_code[index] =
                     encode::encode_lui(
@@ -374,6 +434,14 @@ fn main() {
             }
             
             elf::write_elf("Program".to_string(), riscv_bytes, riscv_data);
+            
+            let output = Command::new("llvm-objdump")
+                .args(["-d", "-s", "Program"])
+                .output()
+                .unwrap();
+
+            let mut asm = File::create("Program.asm").unwrap();
+            asm.write_all(&output.stdout).unwrap();
         } else {
             panic!("Error reading file");
         }
