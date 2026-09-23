@@ -1,4 +1,7 @@
-use crate::{X86Reg, encode, operation::handeler::{HandelerInputValue, HandelerReturnValue},};
+use crate::{
+    X86Reg, encode,
+    operation::handeler::{HandelerInputValue, HandelerReturnValue},
+};
 
 pub fn and(mut values: HandelerInputValue) -> HandelerReturnValue {
     let mut pos = values.code_offset;
@@ -33,7 +36,7 @@ pub fn and(mut values: HandelerInputValue) -> HandelerReturnValue {
                 values.registers[destination.to_index()] &= values.registers[source.to_index()];
             } else {
                 // 32-bit
-                values.riscv_code.push(encode::encode_andw(rd, rs1, rs2));
+                values.riscv_code.push(encode::encode_and(rd, rs1, rs2));
 
                 let result = (values.registers[destination.to_index()] as u32)
                     & (values.registers[source.to_index()] as u32);
@@ -41,7 +44,9 @@ pub fn and(mut values: HandelerInputValue) -> HandelerReturnValue {
                 values.registers[destination.to_index()] = result as u64;
             }
 
-            HandelerReturnValue { operation_len: values.operation.len }
+            HandelerReturnValue {
+                operation_len: values.operation.len,
+            }
         }
 
         0x83 => {

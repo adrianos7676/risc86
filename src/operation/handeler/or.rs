@@ -1,4 +1,7 @@
-use crate::{X86Reg, encode, operation::handeler::{HandelerInputValue, HandelerReturnValue}};
+use crate::{
+    X86Reg, encode,
+    operation::handeler::{HandelerInputValue, HandelerReturnValue},
+};
 
 pub fn or(mut values: HandelerInputValue) -> HandelerReturnValue {
     let mut pos = values.code_offset;
@@ -31,7 +34,10 @@ pub fn or(mut values: HandelerInputValue) -> HandelerReturnValue {
 
                 values.registers[destination.to_index()] |= values.registers[source.to_index()];
             } else {
-                values.riscv_code.push(encode::encode_orw(rd, rs1, rs2));
+                values.riscv_code.push(encode::encode_or(rd, rs1, rs2));
+
+                values.riscv_code.push(encode::encode_slli(rd, rd, 32));
+                values.riscv_code.push(encode::encode_srli(rd, rd, 32));
 
                 let result = (values.registers[destination.to_index()] as u32)
                     | (values.registers[source.to_index()] as u32);
@@ -39,7 +45,9 @@ pub fn or(mut values: HandelerInputValue) -> HandelerReturnValue {
                 values.registers[destination.to_index()] = result as u64;
             }
 
-            HandelerReturnValue { operation_len: values.operation.len }
+            HandelerReturnValue {
+                operation_len: values.operation.len,
+            }
         }
 
         _ => todo!(),

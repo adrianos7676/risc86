@@ -66,9 +66,10 @@ pub fn encode_add(rd: u8, rs1: u8, rs2: u8) -> u32 {
 }
 
 pub fn encode_sub(rd: u8, rs1: u8, rs2: u8) -> u32 {
-    ((rs2 as u32) << 20)
+    (0b0100000u32 << 25)
+        | ((rs2 as u32) << 20)
         | ((rs1 as u32) << 15)
-        | (0b000u32 << 12)
+        | (0b000 << 12)
         | ((rd as u32) << 7)
         | 0x33
 }
@@ -89,28 +90,12 @@ pub fn encode_and(rd: u8, rs1: u8, rs2: u8) -> u32 {
         | 0x33
 }
 
-pub fn encode_andw(rd: u8, rs1: u8, rs2: u8) -> u32 {
-    ((rs2 as u32) << 20)
-        | ((rs1 as u32) << 15)
-        | (0b111 << 12)
-        | ((rd as u32) << 7)
-        | 0x3B
-}
-
 pub fn encode_or(rd: u8, rs1: u8, rs2: u8) -> u32 {
     ((rs2 as u32) << 20)
         | ((rs1 as u32) << 15)
         | (0b110 << 12)
         | ((rd as u32) << 7)
         | 0x33
-}
-
-pub fn encode_orw(rd: u8, rs1: u8, rs2: u8) -> u32 {
-    ((rs2 as u32) << 20)
-        | ((rs1 as u32) << 15)
-        | (0b110 << 12)
-        | ((rd as u32) << 7)
-        | 0x3B
 }
 
 pub fn encode_sltu(rd: u8, rs1: u8, rs2: u8) -> u32 {
