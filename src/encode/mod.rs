@@ -1,4 +1,3 @@
-
 pub fn encode_addi(rd: u8, rs1: u8, imm: i32) -> u32 {
     ((imm as u32 & 0xfff) << 20)
         | ((rs1 as u32) << 15)
@@ -112,4 +111,31 @@ pub fn encode_orw(rd: u8, rs1: u8, rs2: u8) -> u32 {
         | (0b110 << 12)
         | ((rd as u32) << 7)
         | 0x3B
+}
+
+pub fn encode_sltu(rd: u8, rs1: u8, rs2: u8) -> u32 {
+    (0b0000000 << 25)
+        | ((rs2 as u32) << 20)
+        | ((rs1 as u32) << 15)
+        | (0b011 << 12)
+        | ((rd as u32) << 7)
+        | 0b0110011
+}
+
+pub fn encode_xori(rd: u8, rs1: u8, imm: i16) -> u32 {
+    ((imm as u32 & 0xfff) << 20)
+        | ((rs1 as u32) << 15)
+        | (0b100 << 12)
+        | ((rd as u32) << 7)
+        | 0x13
+}
+
+pub fn encode_srli(rd: u8, rs1: u8, shamt: u8) -> u32 {
+    assert!(shamt < 64);
+
+    ((shamt as u32) << 20)
+        | ((rs1 as u32) << 15)
+        | (0b101 << 12)
+        | ((rd as u32) << 7)
+        | 0x13
 }

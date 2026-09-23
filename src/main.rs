@@ -4,6 +4,11 @@ mod elf;
 mod encode;
 mod operation;
 
+const CPUSTATEREG: u8 = 24;
+const JUNKREG0: u8 = 25;
+const JUNKREG1: u8 = 26;
+const JUNKREG2: u8 = 27;
+
 #[derive(Debug, Clone, Copy)]
 enum X86Reg {
     Rax,
@@ -263,15 +268,25 @@ fn main() {
                         };
 
                         let handler_return_value = match operation.operation {
-                            operation::X86operation::Syscall => operation::handeler::syscall::syscall(handeler_input_value),
+                            operation::X86operation::Syscall => {
+                                operation::handeler::syscall::syscall(handeler_input_value)
+                            }
 
-                            operation::X86operation::Mov => operation::handeler::mov::mov(handeler_input_value),
+                            operation::X86operation::Mov => {
+                                operation::handeler::mov::mov(handeler_input_value)
+                            }
 
-                            operation::X86operation::Lea => operation::handeler::lea::lea(handeler_input_value),
+                            operation::X86operation::Lea => {
+                                operation::handeler::lea::lea(handeler_input_value)
+                            }
 
-                            operation::X86operation::Xor => operation::handeler::xor::xor(handeler_input_value),
+                            operation::X86operation::Xor => {
+                                operation::handeler::xor::xor(handeler_input_value)
+                            }
 
-                            operation::X86operation::Endbr64 => operation::handeler::endbr64::endbr64(handeler_input_value),
+                            operation::X86operation::Endbr64 => {
+                                operation::handeler::endbr64::endbr64(handeler_input_value)
+                            }
 
                             operation::X86operation::Jmp => {
                                 todo!();
@@ -289,27 +304,41 @@ fn main() {
                                 todo!();
                             }
 
-                            operation::X86operation::Add => operation::handeler::add::add(handeler_input_value),
+                            operation::X86operation::Add => {
+                                operation::handeler::add::add(handeler_input_value)
+                            }
 
-                            operation::X86operation::Sub => operation::handeler::sub::sub(handeler_input_value),
+                            operation::X86operation::Sub => {
+                                operation::handeler::sub::sub(handeler_input_value)
+                            }
 
-                            operation::X86operation::And => operation::handeler::and::and(handeler_input_value),
+                            operation::X86operation::And => {
+                                operation::handeler::and::and(handeler_input_value)
+                            }
 
-                            operation::X86operation::Or => operation::handeler::or::or(handeler_input_value),
+                            operation::X86operation::Or => {
+                                operation::handeler::or::or(handeler_input_value)
+                            }
 
                             operation::X86operation::Cmp => {
-                                todo!();
+                                operation::handeler::cmp::cmp(handeler_input_value)
                             }
 
                             operation::X86operation::Test => {
                                 todo!();
                             }
 
-                            operation::X86operation::Push => operation::handeler::push::push(handeler_input_value),
+                            operation::X86operation::Push => {
+                                operation::handeler::push::push(handeler_input_value)
+                            }
 
-                            operation::X86operation::Pop => operation::handeler::pop::pop(handeler_input_value),
+                            operation::X86operation::Pop => {
+                                operation::handeler::pop::pop(handeler_input_value)
+                            }
 
-                            operation::X86operation::Nop => operation::handeler::nop::nop(handeler_input_value)
+                            operation::X86operation::Nop => {
+                                operation::handeler::nop::nop(handeler_input_value)
+                            }
                         };
 
                         code_offset += handler_return_value.operation_len;

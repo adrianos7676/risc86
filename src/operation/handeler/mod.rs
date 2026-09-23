@@ -12,6 +12,8 @@ pub mod or;
 pub mod push;
 pub mod pop;
 pub mod nop;
+pub mod cmp;
+
 pub struct HandelerInputValue<'a> {
     pub code: &'a [u8],
     pub code_offset: usize,
