@@ -7,7 +7,6 @@ pub struct TranslationResult {
     pub lea_fixups: Vec<(usize, u8, u64)>,
     pub jcc_fixups: Vec<(usize, usize)>,
     pub code_address: usize,
-    pub parent_address: usize,
     pub children: Vec<TranslationResult>,
 }
 
@@ -15,7 +14,6 @@ pub async fn translate(
     translation_context: TranslationContext,
     code_offset: usize,
     mut registers: [u64; 16],
-    parent_address: usize,
 ) -> TranslationResult {
     let code_address = code_offset;
 
@@ -161,7 +159,6 @@ pub async fn translate(
         lea_fixups,
         jcc_fixups,
         code_address,
-        parent_address,
         children: child_results,
     }
 }

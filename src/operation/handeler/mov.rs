@@ -3,7 +3,7 @@ use crate::{
     operation::handeler::{HandelerInputValue, HandelerReturnValue},
 };
 
-pub fn mov(mut values: HandelerInputValue) -> HandelerReturnValue {
+pub fn mov(values: HandelerInputValue) -> HandelerReturnValue {
     let code = values.code;
     let code_offset = values.code_offset;
     let operation_len = values.operation.len;

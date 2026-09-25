@@ -1,6 +1,6 @@
 use crate::{X86Reg, encode, operation::handeler::{HandelerInputValue, HandelerReturnValue}};
 
-pub fn sub(mut values: HandelerInputValue) -> HandelerReturnValue {
+pub fn sub(values: HandelerInputValue) -> HandelerReturnValue {
     let mut pos = values.code_offset;
 
     let mut rex = 0u8;

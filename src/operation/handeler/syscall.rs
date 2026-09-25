@@ -28,5 +28,9 @@ pub fn syscall(values: HandelerInputValue) -> HandelerReturnValue {
 
     values.riscv_code.push(encode::encode_ecall());
 
-    HandelerReturnValue::finish(values.operation.len)
+    if finish_thread {
+        HandelerReturnValue::finish(values.operation.len)
+    } else {
+        HandelerReturnValue::new(values.operation.len)
+    }
 }

@@ -7,7 +7,7 @@ use crate::{
     },
 };
 
-pub fn xor(mut values: HandelerInputValue) -> HandelerReturnValue {
+pub fn xor(values: HandelerInputValue) -> HandelerReturnValue {
     let mut modrm_offset = values.code_offset + 1;
     let mut rex = 0;
 

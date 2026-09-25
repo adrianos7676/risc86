@@ -37,7 +37,6 @@ pub fn conditionaljump(values: HandelerInputValue<'_>) -> HandelerReturnValue {
                     child_context,
                     target as usize,
                     values.registers.clone(),
-                    values.code_offset,
                 ));
 
                 return HandelerReturnValue::future(values.operation.len, translation_future);
@@ -92,7 +91,6 @@ pub fn conditionaljump(values: HandelerInputValue<'_>) -> HandelerReturnValue {
                             child_context,
                             target as usize,
                             values.registers.clone(),
-                            values.code_offset,
                         ));
 
                         return HandelerReturnValue::future(

@@ -320,7 +320,6 @@ async fn main() {
                             translation_context,
                             0,
                             [0u64; 16],
-                            0,
                         )
                         .await;
 

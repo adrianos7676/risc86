@@ -3,7 +3,7 @@ use crate::{
     operation::handeler::{HandelerInputValue, HandelerReturnValue},
 };
 
-pub fn or(mut values: HandelerInputValue) -> HandelerReturnValue {
+pub fn or(values: HandelerInputValue) -> HandelerReturnValue {
     let mut pos = values.code_offset;
 
     let mut rex = 0u8;
