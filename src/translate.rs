@@ -123,10 +123,16 @@ pub async fn translate(
                     handeler_input_value,
                 )
             }
+
+            operation::X86operation::Test => {
+                operation::handeler::test::test(
+                    handeler_input_value,
+                )
+            }
+
             operation::X86operation::Jmp
             | operation::X86operation::Call
-            | operation::X86operation::Ret
-            | operation::X86operation::Test => todo!(),
+            | operation::X86operation::Ret => todo!(),
         };
 
         code_offset += handler_return_value.operation_len;

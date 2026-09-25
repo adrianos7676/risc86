@@ -137,3 +137,11 @@ pub fn encode_bne(rs1: u8, rs2: u8, imm: i32) -> u32 {
         | ((imm >> 11) & 0x1) << 7
         | 0b1100011
 }
+
+pub fn encode_andw(rd: u8, rs1: u8, rs2: u8) -> u32 {
+    ((rs2 as u32) << 20)
+        | ((rs1 as u32) << 15)
+        | (0b111 << 12)
+        | ((rd as u32) << 7)
+        | 0x3B
+}

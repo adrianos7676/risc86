@@ -177,7 +177,7 @@ impl X86operation {
 
             0x84..=0x85 => DecodedInstruction {
                 operation: Self::Test,
-                len: todo!(),
+                len: (pos - offset) + 1 + Self::modrm_len(code, pos + 1),
             },
 
             0x50..=0x57 => DecodedInstruction {

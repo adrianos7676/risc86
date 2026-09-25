@@ -17,6 +17,7 @@ pub mod pop;
 pub mod nop;
 pub mod cmp;
 pub mod conditionaljump;
+pub mod test;
 
 #[derive(Clone)]
 pub struct TranslationContext {
