@@ -145,3 +145,14 @@ pub fn encode_andw(rd: u8, rs1: u8, rs2: u8) -> u32 {
         | ((rd as u32) << 7)
         | 0x3B
 }
+
+pub fn encode_jal(rd: u8, imm: i32) -> u32 {
+    let imm = imm as u32;
+
+    ((imm >> 20) & 0x1) << 31
+        | ((imm >> 1) & 0x3ff) << 21
+        | ((imm >> 11) & 0x1) << 20
+        | ((imm >> 12) & 0xff) << 12
+        | ((rd as u32) << 7)
+        | 0x6f
+}

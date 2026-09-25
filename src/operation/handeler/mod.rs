@@ -18,6 +18,7 @@ pub mod nop;
 pub mod cmp;
 pub mod conditionaljump;
 pub mod test;
+pub mod jmp;
 
 #[derive(Clone)]
 pub struct TranslationContext {
@@ -69,6 +70,14 @@ impl HandelerReturnValue {
             operation_len,
             finish_thread: true,
             future: None,
+        }
+    }
+
+    pub fn finish_with_future(operation_len: usize, future: JoinHandle<TranslationResult>) -> Self {
+        Self {
+            operation_len,
+            finish_thread: true,
+            future: Some(future),
         }
     }
 }

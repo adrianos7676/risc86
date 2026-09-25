@@ -199,18 +199,11 @@ fn flatten_translation(
     address_map.insert(result.code_address, code_start);
 
     for (offset, register, address) in result.lea_fixups {
-        lea_fixups.push((
-            code_start + offset,
-            register,
-            address,
-        ));
+        lea_fixups.push((code_start + offset, register, address));
     }
 
     for (branch_index, target_x86) in result.jcc_fixups {
-        jcc_fixups.push((
-            code_start + branch_index,
-            target_x86,
-        ));
+        jcc_fixups.push((code_start + branch_index, target_x86));
     }
 
     riscv_code.extend(result.code);
@@ -265,14 +258,11 @@ async fn main() {
             let mut segments: Vec<elf::Elf64ProgramHeader> = Vec::new();
 
             for i in 0..header.e_phnum {
-                let offset = header.e_phoff as usize
-                    + i as usize * header.e_phentsize as usize;
+                let offset = header.e_phoff as usize + i as usize * header.e_phentsize as usize;
 
-                let program_header =
-                    elf::Elf64ProgramHeader::from_bytes(
-                        &bytes[offset
-                            ..offset + header.e_phentsize as usize],
-                    );
+                let program_header = elf::Elf64ProgramHeader::from_bytes(
+                    &bytes[offset..offset + header.e_phentsize as usize],
+                );
 
                 dbg!(&program_header);
 
@@ -287,41 +277,28 @@ async fn main() {
 
             for program_header in segments.iter() {
                 if program_header.p_vaddr <= header.e_entry
-                    && header.e_entry
-                        < program_header.p_vaddr
-                            + program_header.p_memsz
+                    && header.e_entry < program_header.p_vaddr + program_header.p_memsz
                 {
                     let file_offset =
-                        program_header.p_offset
-                            + (header.e_entry
-                                - program_header.p_vaddr);
+                        program_header.p_offset + (header.e_entry - program_header.p_vaddr);
 
                     let code_start = file_offset as usize;
 
-                    let code_end =
-                        (program_header.p_offset
-                            + program_header.p_filesz)
-                            as usize;
+                    let code_end = (program_header.p_offset + program_header.p_filesz) as usize;
 
                     let code = &bytes[code_start..code_end];
 
                     dbg!(code);
 
-                    let translation_context =
-                        TranslationContext {
-                            code: code.into(),
-                            header: header.clone(),
-                            bytes: bytes.clone().into(),
-                            segments: segments.clone(),
-                        };
+                    let translation_context = TranslationContext {
+                        code: code.into(),
+                        header: header.clone(),
+                        bytes: bytes.clone().into(),
+                        segments: segments.clone(),
+                    };
 
                     let translation_result =
-                        translate::translate(
-                            translation_context,
-                            0,
-                            [0u64; 16],
-                        )
-                        .await;
+                        translate::translate(translation_context, 0, [0u64; 16]).await;
 
                     dbg!(&translation_result);
 
@@ -343,17 +320,13 @@ async fn main() {
                 let data_address = 0x11000u64;
 
                 riscv_code[index] =
-                    encode::encode_lui(
-                        riscv_register,
-                        ((data_address + 0x800) >> 12) as i32,
-                    );
+                    encode::encode_lui(riscv_register, ((data_address + 0x800) >> 12) as i32);
 
-                riscv_code[index + 1] =
-                    encode::encode_addi(
-                        riscv_register,
-                        riscv_register,
-                        (data_address as i64 & 0xfff) as i32,
-                    );
+                riscv_code[index + 1] = encode::encode_addi(
+                    riscv_register,
+                    riscv_register,
+                    (data_address as i64 & 0xfff) as i32,
+                );
             }
 
             for (branch_index, target_x86) in jcc_fixups {
@@ -362,37 +335,26 @@ async fn main() {
                 let branch_pc = branch_index * 4;
                 let target_pc = target_index * 4;
 
-                let offset =
-                    target_pc as isize - branch_pc as isize;
+                let offset = target_pc as isize - branch_pc as isize;
 
-                dbg!(
-                    branch_index,
-                    target_x86,
-                    target_index,
-                    offset
-                );
+                let opcode = riscv_code[branch_index] & 0x7f;
 
-                riscv_code[branch_index] =
-                    encode::encode_bne(
-                        JUNKREG0,
-                        0,
-                        offset as i32,
-                    );
+                if opcode == 0x63 {
+                    riscv_code[branch_index] = encode::encode_bne(JUNKREG0, 0, offset as i32);
+                } else if opcode == 0x6f {
+                    riscv_code[branch_index] = encode::encode_jal(0, offset as i32);
+                } else {
+                    unreachable!();
+                }
             }
 
             let mut riscv_bytes = Vec::new();
 
             for instruction in &riscv_code {
-                riscv_bytes.extend_from_slice(
-                    &instruction.to_le_bytes(),
-                );
+                riscv_bytes.extend_from_slice(&instruction.to_le_bytes());
             }
 
-            elf::write_elf(
-                "Program".to_string(),
-                riscv_bytes,
-                riscv_data,
-            );
+            elf::write_elf("Program".to_string(), riscv_bytes, riscv_data);
 
             if cfg!(debug_assertions) {
                 let output = Command::new("llvm-objdump")
@@ -400,8 +362,7 @@ async fn main() {
                     .output()
                     .unwrap();
 
-                let mut asm =
-                    File::create("Program.asm").unwrap();
+                let mut asm = File::create("Program.asm").unwrap();
 
                 asm.write_all(&output.stdout).unwrap();
             }

@@ -130,8 +130,12 @@ pub async fn translate(
                 )
             }
 
-            operation::X86operation::Jmp
-            | operation::X86operation::Call
+            operation::X86operation::Jmp => {
+                operation::handeler::jmp::jmp(
+                    handeler_input_value,
+                )
+            }
+            operation::X86operation::Call
             | operation::X86operation::Ret => todo!(),
         };
 
