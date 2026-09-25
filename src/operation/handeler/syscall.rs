@@ -6,6 +6,8 @@ pub fn syscall(values: HandelerInputValue) -> HandelerReturnValue {
     let syscall = SysCall::from_x86(syscall_number);
     let riscv_syscall = syscall.to_riscv();
 
+    let mut finish_thread = false;
+
     match syscall {
         SysCall::Write => {
             values.riscv_code.push(encode::encode_addi(5, 13, 0));
@@ -18,6 +20,7 @@ pub fn syscall(values: HandelerInputValue) -> HandelerReturnValue {
 
         SysCall::Exit => {
             values.riscv_code.push(encode::encode_addi(10, 13, 0));
+            finish_thread = true;
         }
     }
 
@@ -25,5 +28,5 @@ pub fn syscall(values: HandelerInputValue) -> HandelerReturnValue {
 
     values.riscv_code.push(encode::encode_ecall());
 
-    HandelerReturnValue { operation_len: values.operation.len }
+    HandelerReturnValue::finish(values.operation.len)
 }

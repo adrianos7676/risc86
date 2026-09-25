@@ -55,7 +55,7 @@ pub struct Elf64Header {
     pub e_shstrndx: u16,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Elf64ProgramHeader {
     pub p_type: u32,
     pub p_flags: u32,

@@ -42,7 +42,7 @@ pub fn sub(mut values: HandelerInputValue) -> HandelerReturnValue {
                 values.registers[destination.to_index()] = result as u64;
             }
 
-            HandelerReturnValue { operation_len: values.operation.len }
+            HandelerReturnValue::new(values.operation.len)
         }
 
         _ => todo!(),

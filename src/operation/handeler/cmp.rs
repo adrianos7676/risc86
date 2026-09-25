@@ -265,9 +265,7 @@ pub fn cmp(values: HandelerInputValue) -> HandelerReturnValue {
                 operand_size
             );
 
-            HandelerReturnValue {
-                operation_len: modrm_offset - code_offset + 1,
-            }
+            HandelerReturnValue::new(modrm_offset - code_offset + 1)
         }
 
         _ => todo!(),

@@ -50,5 +50,5 @@ pub fn lea(values: HandelerInputValue) -> HandelerReturnValue {
     values.riscv_code.push(0);
     values.riscv_code.push(0);
 
-    HandelerReturnValue { operation_len: values.operation.len }
+    HandelerReturnValue::new(values.operation.len)
 }

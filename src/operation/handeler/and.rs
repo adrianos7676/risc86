@@ -44,9 +44,7 @@ pub fn and(mut values: HandelerInputValue) -> HandelerReturnValue {
                 values.registers[destination.to_index()] = result as u64;
             }
 
-            HandelerReturnValue {
-                operation_len: values.operation.len,
-            }
+            HandelerReturnValue::new(values.operation.len)
         }
 
         0x83 => {
@@ -76,9 +74,7 @@ pub fn and(mut values: HandelerInputValue) -> HandelerReturnValue {
 
             values.registers[destination.to_index()] &= imm as i64 as u64;
 
-            HandelerReturnValue {
-                operation_len: values.operation.len,
-            }
+            HandelerReturnValue::new(values.operation.len)
         }
 
         _ => todo!(),

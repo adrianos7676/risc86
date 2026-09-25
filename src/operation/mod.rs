@@ -54,13 +54,23 @@ impl X86operation {
         }
 
         match code[pos] {
-            0x0F => match code.get(pos + 1..) {
-                Some([0x05, ..]) => DecodedInstruction {
-                    operation: Self::Syscall,
-                    len: (pos - offset) + 2,
-                },
-                _ => todo!(),
-            },
+            0x0F => {
+                match code[pos + 1] {
+                    // syscall
+                    0x05 => DecodedInstruction {
+                        operation: Self::Syscall,
+                        len: (pos - offset) + 2,
+                    },
+
+                    // near conditional jump
+                    0x80..=0x8F => DecodedInstruction {
+                        operation: Self::ConditionalJump,
+                        len: (pos - offset) + 6,
+                    },
+
+                    _ => todo!(),
+                }
+            }
 
             0xF3 => match code.get(pos + 1..) {
                 Some([0x0F, 0x1E, 0xFA, ..]) => DecodedInstruction {
@@ -155,10 +165,16 @@ impl X86operation {
                 },
             },
 
+            0x70..=0x7F => DecodedInstruction {
+                operation: Self::ConditionalJump,
+                len: 2,
+            },
+
             0x83 => DecodedInstruction {
                 operation: Self::And,
                 len: (pos - offset) + 1 + Self::modrm_len(code, pos + 1) + 1,
             },
+
             0x84..=0x85 => DecodedInstruction {
                 operation: Self::Test,
                 len: todo!(),
@@ -196,11 +212,6 @@ impl X86operation {
 
             0xEB => DecodedInstruction {
                 operation: Self::Jmp,
-                len: (pos - offset) + 2,
-            },
-
-            0x70..=0x7F => DecodedInstruction {
-                operation: Self::ConditionalJump,
                 len: (pos - offset) + 2,
             },
 

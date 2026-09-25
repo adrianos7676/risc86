@@ -1,8 +1,13 @@
-use std::{env, fs::File, io::Write, path::PathBuf, process::Command};
+use std::{
+    collections::HashMap, env, fs::File, io::Write, path::PathBuf, process::Command, sync::Arc,
+};
+
+use crate::operation::handeler::TranslationContext;
 
 mod elf;
 mod encode;
 mod operation;
+mod translate;
 
 const CPUSTATEREG: u8 = 24;
 const JUNKREG0: u8 = 25;
@@ -181,10 +186,54 @@ pub fn load_u64(riscv_register: u8, value: u64, riscv_code: &mut Vec<u32>) {
     }
 }
 
-fn main() {
+fn flatten_translation(
+    result: translate::TranslationResult,
+    riscv_code: &mut Vec<u32>,
+    riscv_data: &mut Vec<u8>,
+    lea_fixups: &mut Vec<(usize, u8, u64)>,
+    jcc_fixups: &mut Vec<(usize, usize)>,
+    address_map: &mut HashMap<usize, usize>,
+) {
+    let code_start = riscv_code.len();
+
+    address_map.insert(result.code_address, code_start);
+
+    for (offset, register, address) in result.lea_fixups {
+        lea_fixups.push((
+            code_start + offset,
+            register,
+            address,
+        ));
+    }
+
+    for (branch_index, target_x86) in result.jcc_fixups {
+        jcc_fixups.push((
+            code_start + branch_index,
+            target_x86,
+        ));
+    }
+
+    riscv_code.extend(result.code);
+    riscv_data.extend(result.data);
+
+    for child in result.children {
+        flatten_translation(
+            child,
+            riscv_code,
+            riscv_data,
+            lea_fixups,
+            jcc_fixups,
+            address_map,
+        );
+    }
+}
+
+#[tokio::main]
+async fn main() {
     let mut riscv_code: Vec<u32> = Vec::new();
-    let registers: [u64; 16] = [0u64; 16];
     let mut lea_fixups: Vec<(usize, u8, u64)> = Vec::new();
+    let mut jcc_fixups: Vec<(usize, usize)> = Vec::new();
+    let mut address_map = HashMap::new();
 
     let args: Vec<String> = env::args().collect();
     dbg!(&args);
@@ -202,25 +251,28 @@ fn main() {
             }
 
             if &bytes[4] != &2 {
-                panic!("Nont an ELF64 file");
+                panic!("Not an ELF64 file");
             }
 
             if &bytes[5] != &1 {
                 panic!("Not little-endian");
             }
 
-            let header = elf::Elf64Header::from_bytes(&bytes[0..64]);
+            let header = Arc::new(elf::Elf64Header::from_bytes(&bytes[0..64]));
 
             dbg!(&header);
 
             let mut segments: Vec<elf::Elf64ProgramHeader> = Vec::new();
 
             for i in 0..header.e_phnum {
-                let offset = header.e_phoff as usize + i as usize * header.e_phentsize as usize;
+                let offset = header.e_phoff as usize
+                    + i as usize * header.e_phentsize as usize;
 
-                let program_header = elf::Elf64ProgramHeader::from_bytes(
-                    &bytes[offset..offset + header.e_phentsize as usize],
-                );
+                let program_header =
+                    elf::Elf64ProgramHeader::from_bytes(
+                        &bytes[offset
+                            ..offset + header.e_phentsize as usize],
+                    );
 
                 dbg!(&program_header);
 
@@ -229,164 +281,131 @@ fn main() {
                 }
             }
 
+            let segments = Arc::new(segments);
+
             let mut riscv_data: Vec<u8> = Vec::new();
 
             for program_header in segments.iter() {
-                if &program_header.p_vaddr <= &header.e_entry
-                    && &header.e_entry < &(program_header.p_vaddr + program_header.p_memsz)
+                if program_header.p_vaddr <= header.e_entry
+                    && header.e_entry
+                        < program_header.p_vaddr
+                            + program_header.p_memsz
                 {
                     let file_offset =
-                        program_header.p_offset + (header.e_entry - program_header.p_vaddr);
+                        program_header.p_offset
+                            + (header.e_entry
+                                - program_header.p_vaddr);
 
                     let code_start = file_offset as usize;
-                    let code_end = (program_header.p_offset + program_header.p_filesz) as usize;
+
+                    let code_end =
+                        (program_header.p_offset
+                            + program_header.p_filesz)
+                            as usize;
 
                     let code = &bytes[code_start..code_end];
 
                     dbg!(code);
 
-                    let mut code_offset = 0;
-                    while code_offset < code.len() {
-                        dbg!(code_offset);
-                        dbg!(code[code_offset]);
-
-                        //read the operation
-                        let operation = operation::X86operation::decode(code, code_offset);
-                        dbg!(&operation);
-
-                        let handeler_input_value = operation::handeler::HandelerInputValue {
-                            code: code,
-                            code_offset: code_offset,
-                            riscv_code: &mut riscv_code,
-                            registers: registers,
-                            operation: &operation,
-                            header: &header,
-                            bytes: &bytes,
-                            riscv_data: &mut riscv_data,
-                            lea_fixups: &mut lea_fixups,
-                            segments: &segments,
+                    let translation_context =
+                        TranslationContext {
+                            code: code.into(),
+                            header: header.clone(),
+                            bytes: bytes.clone().into(),
+                            segments: segments.clone(),
                         };
 
-                        let handler_return_value = match operation.operation {
-                            operation::X86operation::Syscall => {
-                                operation::handeler::syscall::syscall(handeler_input_value)
-                            }
+                    let translation_result =
+                        translate::translate(
+                            translation_context,
+                            0,
+                            [0u64; 16],
+                            0,
+                        )
+                        .await;
 
-                            operation::X86operation::Mov => {
-                                operation::handeler::mov::mov(handeler_input_value)
-                            }
+                    dbg!(&translation_result);
 
-                            operation::X86operation::Lea => {
-                                operation::handeler::lea::lea(handeler_input_value)
-                            }
-
-                            operation::X86operation::Xor => {
-                                operation::handeler::xor::xor(handeler_input_value)
-                            }
-
-                            operation::X86operation::Endbr64 => {
-                                operation::handeler::endbr64::endbr64(handeler_input_value)
-                            }
-
-                            operation::X86operation::Jmp => {
-                                todo!();
-                            }
-
-                            operation::X86operation::Call => {
-                                todo!();
-                            }
-
-                            operation::X86operation::Ret => {
-                                todo!();
-                            }
-
-                            operation::X86operation::ConditionalJump => {
-                                todo!();
-                            }
-
-                            operation::X86operation::Add => {
-                                operation::handeler::add::add(handeler_input_value)
-                            }
-
-                            operation::X86operation::Sub => {
-                                operation::handeler::sub::sub(handeler_input_value)
-                            }
-
-                            operation::X86operation::And => {
-                                operation::handeler::and::and(handeler_input_value)
-                            }
-
-                            operation::X86operation::Or => {
-                                operation::handeler::or::or(handeler_input_value)
-                            }
-
-                            operation::X86operation::Cmp => {
-                                operation::handeler::cmp::cmp(handeler_input_value)
-                            }
-
-                            operation::X86operation::Test => {
-                                todo!();
-                            }
-
-                            operation::X86operation::Push => {
-                                operation::handeler::push::push(handeler_input_value)
-                            }
-
-                            operation::X86operation::Pop => {
-                                operation::handeler::pop::pop(handeler_input_value)
-                            }
-
-                            operation::X86operation::Nop => {
-                                operation::handeler::nop::nop(handeler_input_value)
-                            }
-                        };
-
-                        code_offset += handler_return_value.operation_len;
-
-                        println!("{:.2}%", code_offset as f64 / code.len() as f64 * 100.0);
-                        if cfg!(debug_assertions) {
-                            println!("{} out of {}", code_offset, code.len());
-                        }
-                    }
+                    flatten_translation(
+                        translation_result,
+                        &mut riscv_code,
+                        &mut riscv_data,
+                        &mut lea_fixups,
+                        &mut jcc_fixups,
+                        &mut address_map,
+                    );
                 }
             }
 
-            let mut riscv_bytes = Vec::new();
+            dbg!(&address_map);
+            dbg!(&jcc_fixups);
 
             for (index, riscv_register, _address) in lea_fixups {
                 let data_address = 0x11000u64;
 
                 riscv_code[index] =
-                    encode::encode_lui(riscv_register, ((data_address + 0x800) >> 12) as i32);
+                    encode::encode_lui(
+                        riscv_register,
+                        ((data_address + 0x800) >> 12) as i32,
+                    );
 
-                riscv_code[index + 1] = encode::encode_addi(
-                    riscv_register,
-                    riscv_register,
-                    (data_address as i64 & 0xfff) as i32,
+                riscv_code[index + 1] =
+                    encode::encode_addi(
+                        riscv_register,
+                        riscv_register,
+                        (data_address as i64 & 0xfff) as i32,
+                    );
+            }
+
+            for (branch_index, target_x86) in jcc_fixups {
+                let target_index = address_map[&target_x86];
+
+                let branch_pc = branch_index * 4;
+                let target_pc = target_index * 4;
+
+                let offset =
+                    target_pc as isize - branch_pc as isize;
+
+                dbg!(
+                    branch_index,
+                    target_x86,
+                    target_index,
+                    offset
+                );
+
+                riscv_code[branch_index] =
+                    encode::encode_bne(
+                        JUNKREG0,
+                        0,
+                        offset as i32,
+                    );
+            }
+
+            let mut riscv_bytes = Vec::new();
+
+            for instruction in &riscv_code {
+                riscv_bytes.extend_from_slice(
+                    &instruction.to_le_bytes(),
                 );
             }
 
-            for instruction in &riscv_code {
-                riscv_bytes.extend_from_slice(&instruction.to_le_bytes());
-            }
+            elf::write_elf(
+                "Program".to_string(),
+                riscv_bytes,
+                riscv_data,
+            );
 
             if cfg!(debug_assertions) {
-                println!("RISCV CODE");
+                let output = Command::new("llvm-objdump")
+                    .args(["-d", "-s", "Program"])
+                    .output()
+                    .unwrap();
 
-                for instruction in &riscv_code {
-                    println!("{:08x}", instruction);
-                }
+                let mut asm =
+                    File::create("Program.asm").unwrap();
+
+                asm.write_all(&output.stdout).unwrap();
             }
-
-            elf::write_elf("Program".to_string(), riscv_bytes, riscv_data);
-
-            let output = Command::new("llvm-objdump")
-                .args(["-d", "-s", "Program"])
-                .output()
-                .unwrap();
-
-            let mut asm = File::create("Program.asm").unwrap();
-            asm.write_all(&output.stdout).unwrap();
         } else {
             panic!("Error reading file");
         }

@@ -24,7 +24,5 @@ pub fn push(values: HandelerInputValue) -> HandelerReturnValue {
         .riscv_code
         .push(encode::encode_sd(riscv_register, 2, 0));
 
-    HandelerReturnValue {
-        operation_len: values.operation.len,
-    }
+    HandelerReturnValue::new(values.operation.len)
 }

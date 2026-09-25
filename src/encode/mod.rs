@@ -75,9 +75,9 @@ pub fn encode_sub(rd: u8, rs1: u8, rs2: u8) -> u32 {
 }
 
 pub fn encode_subw(rd: u8, rs1: u8, rs2: u8) -> u32 {
-    ((rs2 as u32) << 20)
+    (0b0100000u32 << 25)
+        | ((rs2 as u32) << 20)
         | ((rs1 as u32) << 15)
-        | (0b000u32 << 12)
         | ((rd as u32) << 7)
         | 0x3B
 }
@@ -123,4 +123,17 @@ pub fn encode_srli(rd: u8, rs1: u8, shamt: u8) -> u32 {
         | (0b101 << 12)
         | ((rd as u32) << 7)
         | 0x13
+}
+
+pub fn encode_bne(rs1: u8, rs2: u8, imm: i32) -> u32 {
+    let imm = imm as u32;
+
+    ((imm >> 12) & 0x1) << 31
+        | ((imm >> 5) & 0x3F) << 25
+        | (rs2 as u32) << 20
+        | (rs1 as u32) << 15
+        | (0b001 << 12)
+        | ((imm >> 1) & 0xF) << 8
+        | ((imm >> 11) & 0x1) << 7
+        | 0b1100011
 }

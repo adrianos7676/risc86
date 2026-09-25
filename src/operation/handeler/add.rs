@@ -30,7 +30,7 @@ pub fn add(mut values: HandelerInputValue) -> HandelerReturnValue {
 
             values.registers[destination.to_index()] = values.registers[destination.to_index()].wrapping_add(values.registers[source.to_index()]);
 
-            HandelerReturnValue { operation_len: values.operation.len }
+            HandelerReturnValue::new(values.operation.len)
         }
 
         _ => todo!(),

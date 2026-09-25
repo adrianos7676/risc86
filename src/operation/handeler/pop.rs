@@ -24,7 +24,5 @@ pub fn pop(values: HandelerInputValue) -> HandelerReturnValue {
 
     values.riscv_code.push(encode::encode_addi(2, 2, 8));
 
-    HandelerReturnValue {
-        operation_len: values.operation.len,
-    }
+    HandelerReturnValue::new(values.operation.len)
 }
