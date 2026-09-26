@@ -29,7 +29,7 @@ pub fn jmp(values: HandelerInputValue) -> HandelerReturnValue {
 
     let fixup_index = values.riscv_code.len();
 
-    values.jcc_fixups.push((fixup_index, target));
+    values.branch_fixups.push((fixup_index, target));
 
     values.riscv_code.push(encode::encode_jal(0, 0));
 

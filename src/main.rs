@@ -2,7 +2,7 @@ use std::{
     collections::HashMap, env, fs::File, io::Write, path::PathBuf, process::Command, sync::Arc,
 };
 
-use crate::operation::handeler::TranslationContext;
+use crate::operation::handeler::{TranslationContext, call::call};
 
 mod elf;
 mod encode;
@@ -191,7 +191,8 @@ fn flatten_translation(
     riscv_code: &mut Vec<u32>,
     riscv_data: &mut Vec<u8>,
     lea_fixups: &mut Vec<(usize, u8, u64)>,
-    jcc_fixups: &mut Vec<(usize, usize)>,
+    branch_fixups: &mut Vec<(usize, usize)>,
+    call_fixups: &mut Vec<(usize, usize)>,
     address_map: &mut HashMap<usize, usize>,
 ) {
     let code_start = riscv_code.len();
@@ -202,8 +203,12 @@ fn flatten_translation(
         lea_fixups.push((code_start + offset, register, address));
     }
 
-    for (branch_index, target_x86) in result.jcc_fixups {
-        jcc_fixups.push((code_start + branch_index, target_x86));
+    for (branch_index, target_x86) in result.branch_fixups {
+        branch_fixups.push((code_start + branch_index, target_x86));
+    }
+
+    for (call_index, target_x86) in result.call_fixups {
+        call_fixups.push((code_start + call_index, target_x86));
     }
 
     riscv_code.extend(result.code);
@@ -215,7 +220,8 @@ fn flatten_translation(
             riscv_code,
             riscv_data,
             lea_fixups,
-            jcc_fixups,
+            branch_fixups,
+            call_fixups,
             address_map,
         );
     }
@@ -225,7 +231,8 @@ fn flatten_translation(
 async fn main() {
     let mut riscv_code: Vec<u32> = Vec::new();
     let mut lea_fixups: Vec<(usize, u8, u64)> = Vec::new();
-    let mut jcc_fixups: Vec<(usize, usize)> = Vec::new();
+    let mut branch_fixups: Vec<(usize, usize)> = Vec::new();
+    let mut call_fixups: Vec<(usize, usize)> = Vec::new();
     let mut address_map = HashMap::new();
 
     let args: Vec<String> = env::args().collect();
@@ -307,14 +314,15 @@ async fn main() {
                         &mut riscv_code,
                         &mut riscv_data,
                         &mut lea_fixups,
-                        &mut jcc_fixups,
+                        &mut branch_fixups,
+                        &mut call_fixups,
                         &mut address_map,
                     );
                 }
             }
 
             dbg!(&address_map);
-            dbg!(&jcc_fixups);
+            dbg!(&branch_fixups);
 
             for (index, riscv_register, _address) in lea_fixups {
                 let data_address = 0x11000u64;
@@ -329,7 +337,7 @@ async fn main() {
                 );
             }
 
-            for (branch_index, target_x86) in jcc_fixups {
+            for (branch_index, target_x86) in branch_fixups {
                 let target_index = address_map[&target_x86];
 
                 let branch_pc = branch_index * 4;
@@ -346,6 +354,37 @@ async fn main() {
                 } else {
                     unreachable!();
                 }
+            }
+
+            dbg!(&call_fixups);
+            for (call_index, target_x86) in call_fixups {
+                dbg!(call_index);
+                dbg!(target_x86);
+                dbg!(&address_map);
+
+                let target_riscv = *address_map
+                    .get(&target_x86)
+                    .expect("CALL target not found in address map");
+
+                dbg!(target_riscv);
+
+                let call_pc = (call_index * 4) as isize;
+                let target_pc = (target_riscv * 4) as isize;
+
+                dbg!(call_pc);
+                dbg!(target_pc);
+
+                let offset = target_pc - call_pc;
+
+                dbg!(offset);
+
+                let instruction = encode::encode_jal(1, offset as i32);
+
+                dbg!(instruction);
+
+                riscv_code[call_index] = instruction;
+
+                dbg!(riscv_code[call_index]);
             }
 
             let mut riscv_bytes = Vec::new();

@@ -29,7 +29,7 @@ pub fn conditionaljump(values: HandelerInputValue<'_>) -> HandelerReturnValue {
             let branch_index = values.riscv_code.len() - 1;
 
             if target >= 0 && (target as usize) < values.code.len() {
-                values.jcc_fixups.push((branch_index, target as usize));
+                values.branch_fixups.push((branch_index, target as usize));
 
                 let child_context = values.translation_context.clone();
 
@@ -83,7 +83,7 @@ pub fn conditionaljump(values: HandelerInputValue<'_>) -> HandelerReturnValue {
                     let branch_index = values.riscv_code.len() - 1;
 
                     if target >= 0 && (target as usize) < values.code.len() {
-                        values.jcc_fixups.push((branch_index, target as usize));
+                        values.branch_fixups.push((branch_index, target as usize));
 
                         let child_context = values.translation_context.clone();
 

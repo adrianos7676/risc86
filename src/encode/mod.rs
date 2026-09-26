@@ -156,3 +156,11 @@ pub fn encode_jal(rd: u8, imm: i32) -> u32 {
         | ((rd as u32) << 7)
         | 0x6f
 }
+
+pub fn encode_jalr(rd: u8, rs1: u8, imm: i32) -> u32 {
+    ((imm as u32 & 0xfff) << 20)
+        | ((rs1 as u32) << 15)
+        | (0b000 << 12)
+        | ((rd as u32) << 7)
+        | 0b1100111
+}

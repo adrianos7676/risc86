@@ -14,13 +14,17 @@ _start:
     syscall
 
 equal:
-    xor rax, rax
-    jmp uncontidional_jump
-    mov rax, 60
-    mov rdi, 5
-    syscall
+    call first_call
 
-uncontidional_jump:
     mov rax, 60
     mov rdi, 20
+    syscall
+
+first_call:
+    call second_call
+    ret
+
+second_call:
+    mov rax, 60
+    mov rdi, 42
     syscall

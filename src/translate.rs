@@ -5,7 +5,8 @@ pub struct TranslationResult {
     pub code: Vec<u32>,
     pub data: Vec<u8>,
     pub lea_fixups: Vec<(usize, u8, u64)>,
-    pub jcc_fixups: Vec<(usize, usize)>,
+    pub branch_fixups: Vec<(usize, usize)>,
+    pub call_fixups: Vec<(usize, usize)>,
     pub code_address: usize,
     pub children: Vec<TranslationResult>,
 }
@@ -20,7 +21,8 @@ pub async fn translate(
     let mut riscv_code = Vec::new();
     let mut riscv_data = Vec::new();
     let mut lea_fixups = Vec::new();
-    let mut jcc_fixups = Vec::new();
+    let mut branch_fixups = Vec::new();
+    let mut call_fixups = Vec::new();
     let mut code_offset = code_offset;
     let mut children = Vec::new();
 
@@ -47,7 +49,8 @@ pub async fn translate(
                 bytes: &translation_context.bytes,
                 riscv_data: &mut riscv_data,
                 lea_fixups: &mut lea_fixups,
-                jcc_fixups: &mut jcc_fixups,
+                branch_fixups: &mut branch_fixups,
+                call_fixups: &mut call_fixups,
                 segments: &translation_context.segments,
                 translation_context: &translation_context,
             };
@@ -135,10 +138,23 @@ pub async fn translate(
                     handeler_input_value,
                 )
             }
-            operation::X86operation::Call
-            | operation::X86operation::Ret => todo!(),
+            operation::X86operation::Call => {
+                operation::handeler::call::call(
+                    handeler_input_value,
+                )
+            }
+
+            operation::X86operation::Ret => {
+                operation::handeler::ret::ret(
+                    handeler_input_value,
+                )
+            },
         };
 
+        dbg!(code_offset);
+dbg!(handler_return_value.operation_len);
+dbg!(handler_return_value.finish_thread);
+dbg!(handler_return_value.future.is_some());
         code_offset += handler_return_value.operation_len;
 
         if let Some(child) = handler_return_value.future {
@@ -163,11 +179,15 @@ pub async fn translate(
         }
     }
 
+    dbg!(code_address);
+    dbg!(&child_results);
+
     TranslationResult {
         code: riscv_code,
         data: riscv_data,
         lea_fixups,
-        jcc_fixups,
+        branch_fixups,
+        call_fixups,
         code_address,
         children: child_results,
     }

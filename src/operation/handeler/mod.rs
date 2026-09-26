@@ -19,6 +19,8 @@ pub mod cmp;
 pub mod conditionaljump;
 pub mod test;
 pub mod jmp;
+pub mod call;
+pub mod ret;
 
 #[derive(Clone)]
 pub struct TranslationContext {
@@ -32,15 +34,16 @@ pub struct HandelerInputValue<'a> {
     pub code: &'a [u8],
     pub code_offset: usize,
     pub registers: &'a mut [u64; 16],
-    pub riscv_code: &'a mut Vec<u32>,
     pub operation: &'a DecodedInstruction,
     pub header: &'a Elf64Header,
+    pub translation_context: &'a TranslationContext,
     pub bytes: &'a Vec<u8>,
     pub riscv_data: &'a mut Vec<u8>,
+    pub riscv_code: &'a mut Vec<u32>,
     pub lea_fixups: &'a mut Vec<(usize, u8, u64)>,
+    pub branch_fixups: &'a mut Vec<(usize, usize)>,
+    pub call_fixups: &'a mut Vec<(usize, usize)>,
     pub segments: &'a Vec<crate::elf::Elf64ProgramHeader>,
-    pub translation_context: &'a TranslationContext,
-    pub jcc_fixups: &'a mut Vec<(usize, usize)>,
 }
 pub struct HandelerReturnValue {
     pub operation_len: usize,
