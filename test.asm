@@ -1,20 +1,48 @@
-bits 64
-
 global _start
 
 section .text
 _start:
-    ; 64-bit: RAX * RCX -> RDX:RAX
+
+    ; ========================================
+    ; 64-bit FAST PATH
+    ; RDX == 0
+    ; ========================================
+
+    mov rax, 0x123456789abcdef0
+    xor rdx, rdx
+    mov rcx, 0x1111111111111111
+
+    div rcx
+
+
+    ; ========================================
+    ; 64-bit SLOW PATH
+    ; RDX != 0
+    ; ========================================
+
+    mov rdx, 0x0000000000000001
     mov rax, 0x123456789abcdef0
     mov rcx, 0x1111111111111111
-    mul rcx
 
-    ; 32-bit: EAX * ECX -> EDX:EAX
+    div rcx
+
+
+    ; ========================================
+    ; 32-bit DIV
+    ; EDX:EAX / ECX
+    ; ========================================
+
     mov eax, 0x12345678
+    xor edx, edx
     mov ecx, 0x11111111
-    mul ecx
 
-    ; exit
+    div ecx
+
+
+    ; ========================================
+    ; exit(0)
+    ; ========================================
+
     mov eax, 60
     xor edi, edi
     syscall

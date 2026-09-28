@@ -156,7 +156,9 @@ pub async fn translate(
             },
 
             operation::X86operation::Div => {
-                todo!()
+                operation::handeler::div::div(
+                    handeler_input_value,
+                )
             },
         };
 

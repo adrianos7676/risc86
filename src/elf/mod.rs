@@ -1,6 +1,5 @@
 use std::fs;
 
-
 impl Elf64Header {
     pub fn from_bytes(bytes: &[u8]) -> Self {
         Self {
@@ -67,16 +66,23 @@ pub struct Elf64ProgramHeader {
     pub p_align: u64,
 }
 
-pub fn write_elf(output_name: String, source_risc_bytes: Vec<u8>, source_risc_data: Vec<u8>) {
+pub fn write_elf(
+    output_name: String,
+    source_risc_bytes: Vec<u8>,
+    source_risc_data: Vec<u8>,
+) -> u64 {
     let code_offset = 0x1000u64;
     let code_vaddr = 0x10000u64;
 
-    let data_offset = 0x2000u64;
-    let data_vaddr = 0x11000u64;
-
-    let entry = 0x10000u64;
     let code_size = source_risc_bytes.len() as u64;
     let data_size = source_risc_data.len() as u64;
+
+    let code_end = code_offset + code_size;
+
+    let data_offset = (code_end + 0xfff) & !0xfff;
+    let data_vaddr = code_vaddr + (data_offset - code_offset);
+
+    let entry = code_vaddr;
 
     let header = Elf64Header {
         e_ident: [
@@ -122,7 +128,7 @@ pub fn write_elf(output_name: String, source_risc_bytes: Vec<u8>, source_risc_da
 
     let data_segment = Elf64ProgramHeader {
         p_type: 1,
-        p_flags: 4,
+        p_flags: 6,
         p_offset: data_offset,
         p_vaddr: data_vaddr,
         p_paddr: data_vaddr,
@@ -166,5 +172,6 @@ pub fn write_elf(output_name: String, source_risc_bytes: Vec<u8>, source_risc_da
     bytes.extend_from_slice(&source_risc_data);
 
     fs::write(output_name, bytes).unwrap();
-}
 
+    data_vaddr
+}

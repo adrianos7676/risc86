@@ -25,7 +25,7 @@ pub fn mov(values: HandelerInputValue) -> HandelerReturnValue {
 
             values.registers[x86_register.to_index()] = value;
 
-            riscv_code.push(encode::encode_addi(riscv_register, 0, value as i32));
+            load_u64(riscv_register, value, riscv_code);
 
             HandelerReturnValue::new(operation_len)
         }

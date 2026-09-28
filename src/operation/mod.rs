@@ -99,19 +99,18 @@ impl X86operation {
                 }
             }
 
-            0x88..=0x8B => DecodedInstruction {
+            0xB8..=0xBF => DecodedInstruction {
                 operation: Self::Mov,
-                len: (pos - offset) + 1 + Self::modrm_len(code, pos + 1),
+                len: if rex {
+                    if code[offset] & 0x08 != 0 { 10 } else { 6 }
+                } else {
+                    5
+                },
             },
 
             0xC6..=0xC7 => DecodedInstruction {
                 operation: Self::Mov,
                 len: todo!(),
-            },
-
-            0xB8..=0xBF => DecodedInstruction {
-                operation: Self::Mov,
-                len: if rex { 10 } else { 5 },
             },
 
             0x8D => DecodedInstruction {
