@@ -21,6 +21,7 @@ pub mod test;
 pub mod jmp;
 pub mod call;
 pub mod ret;
+pub mod mul;
 
 #[derive(Clone)]
 pub struct TranslationContext {

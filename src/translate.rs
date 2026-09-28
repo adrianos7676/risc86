@@ -149,6 +149,15 @@ pub async fn translate(
                     handeler_input_value,
                 )
             },
+            operation::X86operation::Mul => {
+                operation::handeler::mul::mul(
+                    handeler_input_value,
+                )
+            },
+
+            operation::X86operation::Div => {
+                todo!()
+            },
         };
 
         dbg!(code_offset);

@@ -80,6 +80,25 @@ impl X86operation {
                 _ => todo!(),
             },
 
+            0xF6..=0xF7 => {
+                let modrm = code[pos + 1];
+                let reg = (modrm >> 3) & 0b111;
+
+                match reg {
+                    4 => DecodedInstruction {
+                        operation: Self::Mul,
+                        len: (pos - offset) + 1 + Self::modrm_len(code, pos + 1),
+                    },
+
+                    6 => DecodedInstruction {
+                        operation: Self::Div,
+                        len: (pos - offset) + 1 + Self::modrm_len(code, pos + 1),
+                    },
+
+                    _ => todo!(),
+                }
+            }
+
             0x88..=0x8B => DecodedInstruction {
                 operation: Self::Mov,
                 len: (pos - offset) + 1 + Self::modrm_len(code, pos + 1),
@@ -231,6 +250,8 @@ pub enum X86operation {
     Lea,
     Add,
     Sub,
+    Mul,
+    Div,
     Xor,
     And,
     Or,

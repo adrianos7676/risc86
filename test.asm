@@ -1,30 +1,20 @@
+bits 64
+
 global _start
 
 section .text
-
 _start:
-    xor r8d, r8d
-    xor r9d, r9d
+    ; 64-bit: RAX * RCX -> RDX:RAX
+    mov rax, 0x123456789abcdef0
+    mov rcx, 0x1111111111111111
+    mul rcx
 
-    test r8, r9
-    je equal
+    ; 32-bit: EAX * ECX -> EDX:EAX
+    mov eax, 0x12345678
+    mov ecx, 0x11111111
+    mul ecx
 
-    mov rax, 60
-    mov rdi, 1
-    syscall
-
-equal:
-    call first_call
-
-    mov rax, 60
-    mov rdi, 20
-    syscall
-
-first_call:
-    call second_call
-    ret
-
-second_call:
-    mov rax, 60
-    mov rdi, 42
+    ; exit
+    mov eax, 60
+    xor edi, edi
     syscall

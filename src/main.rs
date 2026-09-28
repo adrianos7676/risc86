@@ -2,7 +2,7 @@ use std::{
     collections::HashMap, env, fs::File, io::Write, path::PathBuf, process::Command, sync::Arc,
 };
 
-use crate::operation::handeler::{TranslationContext, call::call};
+use crate::operation::handeler::TranslationContext;
 
 mod elf;
 mod encode;
@@ -397,7 +397,7 @@ async fn main() {
 
             if cfg!(debug_assertions) {
                 let output = Command::new("llvm-objdump")
-                    .args(["-d", "-s", "Program"])
+                    .args(["-d", "-s", "--mattr=+m", "Program"])
                     .output()
                     .unwrap();
 

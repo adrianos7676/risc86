@@ -164,3 +164,21 @@ pub fn encode_jalr(rd: u8, rs1: u8, imm: i32) -> u32 {
         | ((rd as u32) << 7)
         | 0b1100111
 }
+
+pub fn encode_mul(rd: u8, rs1: u8, rs2: u8) -> u32 {
+    ((0b0000001u32) << 25)
+        | ((rs2 as u32) << 20)
+        | ((rs1 as u32) << 15)
+        | (0b000 << 12)
+        | ((rd as u32) << 7)
+        | 0x33
+}
+
+pub fn encode_mulhu(rd: u8, rs1: u8, rs2: u8) -> u32 {
+    ((0b0000001u32) << 25)
+        | ((rs2 as u32) << 20)
+        | ((rs1 as u32) << 15)
+        | (0b011 << 12)
+        | ((rd as u32) << 7)
+        | 0x33
+}
