@@ -4,40 +4,17 @@ section .text
 _start:
 
     ; ========================================
-    ; 64-bit FAST PATH
-    ; RDX == 0
+    ; CMP + JE
+    ; ZF = 1 -> branch TAKEN
     ; ========================================
 
-    mov rax, 0x123456789abcdef0
-    xor rdx, rdx
-    mov rcx, 0x1111111111111111
+    mov rax, 10
+    mov rbx, 10
 
-    div rcx
+    cmp rax, rbx
+    je .equal
 
-
-    ; ========================================
-    ; 64-bit SLOW PATH
-    ; RDX != 0
-    ; ========================================
-
-    mov rdx, 0x0000000000000001
-    mov rax, 0x123456789abcdef0
-    mov rcx, 0x1111111111111111
-
-    div rcx
-
-
-    ; ========================================
-    ; 32-bit DIV
-    ; EDX:EAX / ECX
-    ; ========================================
-
-    mov eax, 0x12345678
-    xor edx, edx
-    mov ecx, 0x11111111
-
-    div ecx
-
+.equal:
 
     ; ========================================
     ; exit(0)

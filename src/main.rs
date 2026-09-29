@@ -8,6 +8,7 @@ mod elf;
 mod encode;
 mod operation;
 mod translate;
+mod optimizer;
 
 const CPUSTATEREG: u8 = 24;
 const JUNKREG0: u8 = 25;
@@ -307,8 +308,6 @@ async fn main() {
                     let translation_result =
                         translate::translate(translation_context, 0, [0u64; 16]).await;
 
-                    dbg!(&translation_result);
-
                     flatten_translation(
                         translation_result,
                         &mut riscv_code,
@@ -387,8 +386,9 @@ async fn main() {
                 dbg!(riscv_code[call_index]);
             }
 
-            let mut riscv_bytes = Vec::new();
+            riscv_code = optimizer::optimize(riscv_code);
 
+            let mut riscv_bytes = Vec::new();
             for instruction in &riscv_code {
                 riscv_bytes.extend_from_slice(&instruction.to_le_bytes());
             }
